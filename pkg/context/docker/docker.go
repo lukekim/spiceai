@@ -87,7 +87,8 @@ func (c *DockerContext) IsRuntimeInstallRequired() bool {
 }
 
 func (c *DockerContext) InstallOrUpgradeRuntime() error {
-	dockerImg := getDockerImage(spice_version.Version())
+	version := spice_version.Version()
+	dockerImg := getDockerImage(version)
 	cmd := exec.Command("docker", "pull", dockerImg)
 
 	cmd.Stderr = os.Stderr
@@ -153,6 +154,7 @@ func (c *DockerContext) GetRunCmd(manifestPath string) (*exec.Cmd, error) {
 		dockerArgs = append(dockerArgs, manifestPath)
 	}
 
+	fmt.Printf("Running Docker image %s", dockerImg)
 	cmd := exec.Command("docker", dockerArgs...)
 
 	return cmd, nil
