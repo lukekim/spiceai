@@ -66,7 +66,7 @@ func (c *MetalContext) Init() error {
 		return err
 	}
 	c.appDir = cwd
-	c.podsDir = filepath.Join(c.appDir, constants.SpicePodsDirectoryName)
+	c.podsDir = filepath.Join(c.appDir, constants.DotSpice, "pods")
 
 	return nil
 }
