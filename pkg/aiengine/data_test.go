@@ -68,10 +68,11 @@ func testGetAddDataRequestFunc() func(*testing.T) {
 			return
 		}
 
-		fieldNames := []string{"duration", "guest_count", "ticket_price", "event_type", "target_audience"}
+		measurementsNames := []string{"duration", "guest_count", "ticket_price"}
+		categoriesNames := []string{"event_type", "target_audience"}
 		tags := []string{"tagA", "tagB", "tagC"}
 
-		s := state.NewState("event.stream", fieldNames, tags, newObservations)
+		s := state.NewState("event.stream", measurementsNames, categoriesNames, tags, newObservations)
 
 		addDataRequest := getAddDataRequest(pod, s)
 

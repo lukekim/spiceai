@@ -33,7 +33,7 @@ type Pod struct {
 	dataSources      []*dataspace.Dataspace
 	measurements     map[string]*dataspace.Measurement
 	measurementNames []string
-	categoryPathMap  map[string][]*dataspace.Category
+	categoryPathMap  map[string][]string
 	tagPathMap       map[string][]string
 	flights          map[string]*flights.Flight
 	viper            *viper.Viper
@@ -136,18 +136,17 @@ func (pod *Pod) CachedCsv() string {
 	for _, state := range cachedState {
 		var validHeaders []string
 
-		for _, globalMeasurementName := range measurementNames {
+		for _, podFqMeasurementName := range measurementNames {
 			isLocal := false
-			for _, measurementName := range state.FieldNames() {
-				measurement := state.Path() + "." + measurementName
-				if globalMeasurementName == measurement {
+			for measurementName, stateFqMeasurementName := range state.MeasurementsNamesMap() {
+				if podFqMeasurementName == stateFqMeasurementName {
 					validHeaders = append(validHeaders, measurementName)
 					isLocal = true
 					break
 				}
 			}
 			if !isLocal {
-				validHeaders = append(validHeaders, globalMeasurementName)
+				validHeaders = append(validHeaders, podFqMeasurementName)
 			}
 		}
 
@@ -302,11 +301,11 @@ func (pod *Pod) MeasurementNames() []string {
 	return pod.measurementNames
 }
 
-func (pod *Pod) CategoryPathMap() map[string][]*dataspace.Category {
+func (pod *Pod) CategoryPathMap() map[string][]string {
 	return pod.categoryPathMap
 }
 
-// Returns a map of datasource paths to the tags in those paths
+// Returns a map of dataspace paths to the tags in those paths
 func (pod *Pod) TagPathMap() map[string][]string {
 	return pod.tagPathMap
 }
@@ -478,9 +477,9 @@ func loadPod(podPath string, hash string) (*Pod, error) {
 			measurements[fqMeasurementName] = measurement
 		}
 
-		dsCategories := make([]*dataspace.Category, 0, len(ds.Categories()))
-		for _, category := range ds.Categories() {
-			dsCategories = append(dsCategories, category)
+		dsCategories := make([]*dataspace.Category, len(ds.Categories()))
+		for i, category := range ds.Categories() {
+			dsCategories[i] = category
 		}
 		categoryPathMap[ds.Path()] = dsCategories
 	}

@@ -63,18 +63,22 @@ func TestGetStateFromCsv(t *testing.T) {
 func testNewState() func(*testing.T) {
 	return func(t *testing.T) {
 		expectedPath := "test.path"
-		expectedFieldNames := []string{"field1", "field2", "field3"}
+		expectedMeasurementsNames := []string{"field1", "field2", "field3"}
+		expectedCategoriesNames := []string{"field3", "field4", "field5"}
 		expectedTags := []string{}
 		expectedObservations := []observations.Observation{}
 
-		newState := NewState(expectedPath, expectedFieldNames, expectedTags, expectedObservations)
+		newState := NewState(expectedPath, expectedMeasurementsNames, expectedCategoriesNames, expectedTags, expectedObservations)
 
 		assert.Equal(t, expectedPath, newState.Path(), "Path() not equal")
-		assert.Equal(t, expectedFieldNames, newState.FieldNames(), "FieldNames() not equal")
+		assert.Equal(t, expectedMeasurementsNames, newState.MeasurementsNames(), "MeasurementsNames() not equal")
+		assert.Equal(t, expectedCategoriesNames, newState.CategoriesNames(), "CategoriesNames() not equal")
 
-		expectedFields := []string{"test.path.field1", "test.path.field2", "test.path.field3"}
+		expectedFqMeasurements := []string{"test.path.field1", "test.path.field2", "test.path.field3"}
+		expectedFqCategories := []string{"test.path.field3", "test.path.field4", "test.path.field5"}
 
-		assert.Equal(t, expectedFields, newState.Fields(), "Fields() not equal")
+		assert.Equal(t, expectedFqMeasurements, newState.FqMeasurementsNames(), "FqMeasurementsNames() not equal")
+		assert.Equal(t, expectedFqCategories, newState.FqCategoriesNames(), "FqCategoriesNames() not equal")
 	}
 }
 

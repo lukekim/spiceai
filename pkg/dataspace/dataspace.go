@@ -168,6 +168,15 @@ func (ds *Dataspace) measurementSelectorMap() map[string]string {
 	return measurements
 }
 
+func (ds *Dataspace) CategoriesNames() []string {
+	categoryNames := make([]string, 0, len(ds.DataspaceSpec.Categories))
+	for _, v := range ds.DataspaceSpec.Categories {
+		categoryNames = append(categoryNames, v.Name)
+	}
+
+	return categoryNames
+}
+
 func (ds *Dataspace) categorySelectorMap() map[string]string {
 	categories := make(map[string]string)
 	for _, c := range ds.DataspaceSpec.Categories {
@@ -266,7 +275,7 @@ func (ds *Dataspace) ReadData(data []byte, metadata map[string]string) ([]byte, 
 		return nil, err
 	}
 
-	newState := state.NewState(ds.Path(), ds.MeasurementNames(), ds.Tags(), observations)
+	newState := state.NewState(ds.Path(), ds.MeasurementNames(), ds.CategoriesNames(), ds.Tags(), observations)
 	err = ds.AddNewState(newState, metadata)
 	if err != nil {
 		return nil, err

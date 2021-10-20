@@ -72,11 +72,7 @@ func getAddDataRequest(pod *pods.Pod, s *state.State) *aiengine_pb.AddDataReques
 
 	csv := strings.Builder{}
 	csv.WriteString("time")
-	for _, field := range s.Fields() {
-		if _, ok := categories[field]; ok {
-			// Don't write the comma for a category, we will handle it below
-			continue
-		}
+	for _, field := range s.FqMeasurementsNames() {
 		csv.WriteString(",")
 		csv.WriteString(strings.ReplaceAll(field, ".", "_"))
 	}
@@ -103,7 +99,7 @@ func getAddDataRequest(pod *pods.Pod, s *state.State) *aiengine_pb.AddDataReques
 		return nil
 	}
 
-	csvPreview := getData(&csv, pod.Epoch(), s.FieldNames(), tagPathMap[s.Path()], categoryPathMap[s.Path()], observationData, 5)
+	csvPreview := getData(&csv, pod.Epoch(), s.MeasurementsNames(), s.CategoriesNames(), tagPathMap[s.Path()], observationData, 5)
 
 	zaplog.Sugar().Debugf("Posting data to AI engine:\n%s", aurora.BrightYellow(fmt.Sprintf("%s%s...\n%d observations posted", csv.String(), csvPreview, len(observationData))))
 
@@ -115,7 +111,7 @@ func getAddDataRequest(pod *pods.Pod, s *state.State) *aiengine_pb.AddDataReques
 	return addDataRequest
 }
 
-func getData(csv *strings.Builder, epoch time.Time, fieldNames []string, tags []string, categories []*dataspace.Category, observations []observations.Observation, previewLines int) string {
+func getData(csv *strings.Builder, epoch time.Time, measurementsNames []string, categoriesNames []string, tags []string, observations []observations.Observation, previewLines int) string {
 	epochTime := epoch.Unix()
 	var csvPreview string
 	for i, o := range observations {
@@ -125,7 +121,7 @@ func getData(csv *strings.Builder, epoch time.Time, fieldNames []string, tags []
 		csv.WriteString(strconv.FormatInt(o.Time, 10))
 
 		foundCategories := make(map[string]string)
-		for _, f := range fieldNames {
+		for _, f := range measurementsNames {
 			if category, ok := o.Categories[f]; ok {
 				foundCategories[f] = category
 				continue
@@ -139,21 +135,17 @@ func getData(csv *strings.Builder, epoch time.Time, fieldNames []string, tags []
 			}
 		}
 
-		for _, category := range categories {
-			for _, val := range category.Values {
-				csv.WriteString(",")
-				foundValMatches := false
-				if foundVal, ok := foundCategories[category.Name]; ok {
-					if foundVal == val {
-						foundValMatches = true
-					}
+		for _, category := range categoriesNames {
+			if foundVal, ok := foundCategories[category.Name]; ok {
+				if foundVal == val {
+					foundValMatches = true
 				}
+			}
 
-				if foundValMatches {
-					csv.WriteString("1")
-				} else {
-					csv.WriteString("0")
-				}
+			if foundValMatches {
+				csv.WriteString("1")
+			} else {
+				csv.WriteString("0")
 			}
 		}
 

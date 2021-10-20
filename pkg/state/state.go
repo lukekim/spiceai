@@ -21,8 +21,12 @@ type State struct {
 	Time               time.Time
 	TimeSentToAIEngine time.Time
 	path               string
-	fieldNames         []string
-	fields             []string
+	measurementsNames         []string
+	fqMeasurementsNames             []string
+	measurementsNamesMap map[string]string
+	categoriesNames         []string
+	fqCategoriesNames             []string
+	categoriesNamesMap map[string]string
 	tags               []string
 	observations       []observations.Observation
 	observationsMutex  sync.RWMutex
@@ -30,18 +34,20 @@ type State struct {
 
 type StateHandler func(state *State, metadata map[string]string) error
 
-func NewState(path string, fieldNames []string, tags []string, observations []observations.Observation) *State {
-	fields := make([]string, len(fieldNames))
-	for i, name := range fieldNames {
-		fields[i] = path + "." + name
-	}
+func NewState(path string, measurementNames []string, categoriesNames []string, tags []string, observations []observations.Observation) *State {
+	fqMeasurementsNames, measurementsNamesMap := getFieldNames(path, measurementNames)
+	fqCategoriesNames, categoriesNamesMap := getFieldNames(path, categoriesNames)
 
 	return &State{
 		Time:               time.Now(),
 		TimeSentToAIEngine: time.Time{},
 		path:               path,
-		fieldNames:         fieldNames,
-		fields:             fields,
+		measurementsNames:         measurementNames,
+		fqMeasurementsNames:             fqMeasurementsNames,
+		measurementsNamesMap: measurementsNamesMap,
+		categoriesNames: categoriesNames,
+		fqCategoriesNames: fqCategoriesNames,
+		categoriesNamesMap: categoriesNamesMap,
 		tags:               tags,
 		observations:       observations,
 	}
@@ -49,7 +55,7 @@ func NewState(path string, fieldNames []string, tags []string, observations []ob
 
 // Processes into State by field path
 // CSV headers are expected to be fully-qualified field names
-func GetStateFromCsv(validFields []string, data []byte) ([]*State, error) {
+func GetStateFromCsv(measurementsNames []string, categoriesMap map[string][]string, data []byte) ([]*State, error) {
 	reader := bytes.NewReader(data)
 	if reader == nil {
 		return nil, nil
@@ -60,10 +66,10 @@ func GetStateFromCsv(validFields []string, data []byte) ([]*State, error) {
 		return nil, fmt.Errorf("failed to process csv: %s", err)
 	}
 
-	if validFields != nil {
+	if measurementsNames != nil {
 		for i := 1; i < len(headers); i++ {
 			header := headers[i]
-			fields := validFields
+			fields := measurementsNames
 			found := false
 			for _, validField := range fields {
 				if validField == header {
@@ -113,7 +119,7 @@ func GetStateFromCsv(validFields []string, data []byte) ([]*State, error) {
 			continue
 		}
 
-		lineData := make(map[string]map[string]float64, numDataFields)
+		measurementsData := make(map[string]map[string]float64, numDataFields)
 		tagData := make(map[string][]string)
 
 		for col := 1; col < len(record); col++ {
@@ -145,20 +151,20 @@ func GetStateFromCsv(validFields []string, data []byte) ([]*State, error) {
 				continue
 			}
 
-			data := lineData[path]
+			data := measurementsData[path]
 			if data == nil {
 				data = make(map[string]float64)
-				lineData[path] = data
+				measurementsData[path] = data
 			}
 
 			data[fieldName] = val
 		}
 
-		if len(lineData) == 0 {
+		if len(measurementsData) == 0 {
 			continue
 		}
 
-		for path, data := range lineData {
+		for path, data := range measurementsData {
 			observation := &observations.Observation{
 				Time:         ts.Unix(),
 				Measurements: data,
@@ -191,12 +197,28 @@ func (s *State) Path() string {
 	return s.path
 }
 
-func (s *State) FieldNames() []string {
-	return s.fieldNames
+func (s *State) MeasurementsNames() []string {
+	return s.measurementsNames
 }
 
-func (s *State) Fields() []string {
-	return s.fields
+func (s *State) FqMeasurementsNames() []string {
+	return s.fqMeasurementsNames
+}
+
+func (s *State) MeasurementsNamesMap() map[string]string {
+	return s.measurementsNamesMap
+}
+
+func (s *State) CategoriesNames() []string {
+	return s.categoriesNames
+}
+
+func (s *State) FqCategoriesNames() []string {
+	return s.fqCategoriesNames
+}
+
+func (s *State) CategoriesNamesMap() map[string]string {
+	return s.categoriesNamesMap
 }
 
 func (s *State) Observations() []observations.Observation {
@@ -260,4 +282,17 @@ func getColumnMappings(headers []string) ([]string, []string, error) {
 	}
 
 	return columnToPath, columnToFieldName, nil
+}
+
+func getFieldNames(path string, fieldNames []string) ([]string, map[string]string) {
+	fqNames := make([]string, len(fieldNames))
+	namesMap := make(map[string]string, len(fieldNames))
+
+	for i, name := range fieldNames {
+		fqName := path + "." + name
+		fqNames[i] = fqName
+		namesMap[name] = fqName
+	}
+
+	return fqNames, namesMap
 }
