@@ -125,7 +125,7 @@ func testGetCsvAllHeadersWithPreviewFunc() func(*testing.T) {
 		headers := strings.Split(headerLine, ",")
 		tags := make([]string, 0)
 
-		actualPreviewCsv := getData(&csv, epoch, headers, tags, nil, newObservations, 5)
+		actualPreviewCsv := writeData(&csv, epoch, headers, tags, nil, newObservations, 5)
 
 		expectedPreviewCsv := `1605313800,16256.42,16305,16248.6,16305,110.91971
 1605315600,16303.88,16303.88,16210.99,16222.16,231.64805
@@ -181,7 +181,7 @@ func testGetCsvSelectHeadersWithPreviewFunc() func(*testing.T) {
 		headers := strings.Split("open,high,low,close,volume", ",")
 		tags := make([]string, 0)
 
-		actualPreviewCsv := getData(&csv, epoch, headers, tags, nil, newObservations, 5)
+		actualPreviewCsv := writeData(&csv, epoch, headers, tags, nil, newObservations, 5)
 
 		expectedPreviewCsv := `1605312000,16339.56,16339.6,16240,16254.51,274.42607
 1605313800,16256.42,16305,16248.6,16305,110.91971
@@ -235,7 +235,7 @@ func testGetDataWithTagsFunc() func(*testing.T) {
 		fieldNames := []string{"eventId", "height", "rating", "speed", "target"}
 		tags := []string{"tagA", "tagB", "tagC"}
 
-		actualPreviewCsv := getData(&csv, epoch, fieldNames, tags, nil, newObservations, 5)
+		actualPreviewCsv := writeData(&csv, epoch, fieldNames, tags, nil, newObservations, 5)
 
 		expectedPreviewCsv := `1610057400,1,10,10,15,1,1,1,1
 1610057800,2,20,11,30,2,1,0,0
@@ -248,7 +248,7 @@ func testGetDataWithTagsFunc() func(*testing.T) {
 	}
 }
 
-func testGetDataWithCategoriesFunc() func(*testing.T) {
+func testBuildDataWithCategoriesFunc() func(*testing.T) {
 	return func(t *testing.T) {
 		data, err := os.ReadFile("../../test/assets/data/json/event_stream_categories.json")
 		if err != nil {
@@ -298,7 +298,7 @@ func testGetDataWithCategoriesFunc() func(*testing.T) {
 		tags := []string{"tagA", "tagB", "tagC"}
 
 		t.Log(fieldNames)
-		getData(&csv, epoch, fieldNames, categoriesList, tags, newObservations, 5)
+		writeData(&csv, epoch, fieldNames, categoriesList, tags, newObservations, 5)
 
 		snapshotter.SnapshotT(t, csv.String())
 	}

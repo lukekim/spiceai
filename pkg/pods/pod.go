@@ -138,9 +138,8 @@ func (pod *Pod) CachedCsv() string {
 
 		for _, podFqMeasurementName := range measurementNames {
 			isLocal := false
-			for _, measurementName := range state.MeasurementsNames() {
-				measurement := state.Path() + "." + measurementName
-				if globalMeasurementName == measurement {
+			for measurementName, fqMeasurementName := range state.MeasurementsNamesMap() {
+				if podFqMeasurementName == fqMeasurementName {
 					validHeaders = append(validHeaders, measurementName)
 					isLocal = true
 					break
@@ -178,6 +177,15 @@ func (pod *Pod) Flights() *map[string]*flights.Flight {
 
 func (pod *Pod) Interpretations() *interpretations.InterpretationsStore {
 	return pod.interpretations
+}
+
+func (pod *Pod) GetDataSpace(fqName string) *dataspace.Dataspace {
+	for _, ds := range pod.DataSpaces() {
+		if ds.Path() == fqName {
+			return ds
+		}
+	}
+	return nil
 }
 
 func (pod *Pod) GetFlight(flight string) *flights.Flight {
@@ -465,17 +473,14 @@ func loadPod(podPath string, hash string) (*Pod, error) {
 		}
 		pod.dataSources = append(pod.dataSources, ds)
 
-		for _, measurementName := range ds.MeasurementNameMap() {
-			measurementNames = append(measurementNames, measurementName)
+		for fqMeasurementName, measurementName := range ds.Measurements() {
+			measurementNames = append(measurementNames, measurementName.Name)
+			measurements[fqMeasurementName] = measurementName
 		}
 
 		if len(ds.Tags()) > 0 {
 			tagPathMap[ds.Path()] = append(tagPathMap[ds.Path()], ds.Tags()...)
 			sort.Strings(tagPathMap[ds.Path()])
-		}
-
-		for fqMeasurementName, measurement := range ds.Measurements() {
-			measurements[fqMeasurementName] = measurement
 		}
 
 		dsCategories := make([]*dataspace.Category, len(ds.Categories()))

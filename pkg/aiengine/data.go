@@ -60,23 +60,32 @@ func getAddDataRequest(pod *pods.Pod, s *state.State) *aiengine_pb.AddDataReques
 
 	tagPathMap := pod.TagPathMap()
 	categoryPathMap := pod.CategoryPathMap()
-
-	var currentDataspace *dataspace.Dataspace
-	for _, ds := range pod.DataSpaces() {
-		if ds.Path() == s.Path() {
-			currentDataspace = ds
-		}
-	}
-
-	categories := currentDataspace.Categories()
+	categories := pod.GetDataSpace(s.Path()).Categories()
 
 	csv := strings.Builder{}
+	writeHeaders(csv, pod.MeasurementNames(), )
+
+	observations := s.Observations()
+
+	if len(observations) == 0 {
+		return nil
+	}
+
+	csvPreview := writeData(&csv, pod.Epoch(), s.MeasurementsNames(), tagPathMap[s.Path()], categoryPathMap[s.Path()], observations, 5)
+
+	zaplog.Sugar().Debugf("Posting data to AI engine:\n%s", aurora.BrightYellow(fmt.Sprintf("%s%s...\n%d observations posted", csv.String(), csvPreview, len(observations))))
+
+	addDataRequest := &aiengine_pb.AddDataRequest{
+		Pod:     pod.Name,
+		CsvData: csv.String(),
+	}
+
+	return addDataRequest
+}
+
+func writeHeaders(csv *strings.Builder, fqMeasurementsNames []string, categories map[string]*dataspace.Category, fqTags []string) {
 	csv.WriteString("time")
-	for _, field := range s.FqMeasurementsNames() {
-		if _, ok := categories[field]; ok {
-			// Don't write the comma for a category, we will handle it below
-			continue
-		}
+	for _, field := range fqMeasurementsNames {
 		csv.WriteString(",")
 		csv.WriteString(strings.ReplaceAll(field, ".", "_"))
 	}
@@ -88,57 +97,33 @@ func getAddDataRequest(pod *pods.Pod, s *state.State) *aiengine_pb.AddDataReques
 			csv.WriteString(oneHotFieldName)
 		}
 	}
-	if _, ok := tagPathMap[s.Path()]; ok {
-		for _, tagName := range tagPathMap[s.Path()] {
-			csv.WriteString(",")
-			fqTagName := fmt.Sprintf("%s.%s", s.Path(), tagName)
-			csv.WriteString(strings.ReplaceAll(fqTagName, ".", "_"))
-		}
+	for _, fqTagName := range fqTags {
+		csv.WriteString(",")
+		csv.WriteString(strings.ReplaceAll(fqTagName, ".", "_"))
 	}
 	csv.WriteString("\n")
-
-	observationData := s.Observations()
-
-	if len(observationData) == 0 {
-		return nil
-	}
-
-	csvPreview := getData(&csv, pod.Epoch(), s.MeasurementsNames(), tagPathMap[s.Path()], categoryPathMap[s.Path()], observationData, 5)
-
-	zaplog.Sugar().Debugf("Posting data to AI engine:\n%s", aurora.BrightYellow(fmt.Sprintf("%s%s...\n%d observations posted", csv.String(), csvPreview, len(observationData))))
-
-	addDataRequest := &aiengine_pb.AddDataRequest{
-		Pod:     pod.Name,
-		CsvData: csv.String(),
-	}
-
-	return addDataRequest
 }
 
-func getData(csv *strings.Builder, epoch time.Time, measurementsNames []string, categoriesNames []string, tags []string, observations []observations.Observation, previewLines int) string {
+func writeData(csv *strings.Builder, epoch time.Time, measurementsNames []string, categoriesNames []string, tags []string, observations []observations.Observation, previewLines int) string {
 	epochTime := epoch.Unix()
 	var csvPreview string
 	for i, o := range observations {
 		if o.Time < epochTime {
 			continue
 		}
+
 		csv.WriteString(strconv.FormatInt(o.Time, 10))
 
-		foundCategories := make(map[string]string)
+		// Write measurements		
 		for _, f := range measurementsNames {
-			if category, ok := o.Categories[f]; ok {
-				foundCategories[f] = category
-				continue
-			}
-
 			csv.WriteString(",")
-
 			measurement, ok := o.Measurements[f]
 			if ok {
 				csv.WriteString(strconv.FormatFloat(measurement, 'f', -1, 64))
 			}
 		}
 
+		foundCategories := make(map[string]string)
 		for _, category := range categoriesNames {
 			if foundVal, ok := foundCategories[category.Name]; ok {
 				if foundVal == val {
