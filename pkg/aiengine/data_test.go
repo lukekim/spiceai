@@ -298,7 +298,7 @@ func testGetDataWithCategoriesFunc() func(*testing.T) {
 		tags := []string{"tagA", "tagB", "tagC"}
 
 		t.Log(fieldNames)
-		getData(&csv, epoch, fieldNames, tags, categoriesList, newObservations, 5)
+		getData(&csv, epoch, fieldNames, categoriesList, tags, newObservations, 5)
 
 		snapshotter.SnapshotT(t, csv.String())
 	}

@@ -33,7 +33,7 @@ func NewObservationsFromState(s *state.State) []*common_pb.Observation {
 	for fqCategoriesName, categoriesName := range s.MeasurementsNamesMap() {
 		categoriesNameToFqNameMap[categoriesName] = fqCategoriesName
 	}
-	
+
 	apiObservations := []*common_pb.Observation{}
 	for _, o := range s.Observations() {
 		apiMeasurements := make(map[string]float64, len(o.Measurements))

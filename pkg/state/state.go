@@ -18,18 +18,18 @@ import (
 )
 
 type State struct {
-	Time               time.Time
-	TimeSentToAIEngine time.Time
-	path               string
-	measurementsNames         []string
-	fqMeasurementsNames             []string
+	Time                 time.Time
+	TimeSentToAIEngine   time.Time
+	path                 string
+	measurementsNames    []string
+	fqMeasurementsNames  []string
 	measurementsNamesMap map[string]string
-	categoriesNames         []string
-	fqCategoriesNames             []string
-	categoriesNamesMap map[string]string
-	tags               []string
-	observations       []observations.Observation
-	observationsMutex  sync.RWMutex
+	categoriesNames      []string
+	fqCategoriesNames    []string
+	categoriesNamesMap   map[string]string
+	tags                 []string
+	observations         []observations.Observation
+	observationsMutex    sync.RWMutex
 }
 
 type StateHandler func(state *State, metadata map[string]string) error
@@ -39,21 +39,21 @@ func NewState(path string, measurementNames []string, categoriesNames []string, 
 	fqCategoriesNames, categoriesNamesMap := getFieldNames(path, categoriesNames)
 
 	return &State{
-		Time:               time.Now(),
-		TimeSentToAIEngine: time.Time{},
-		path:               path,
-		measurementsNames:         measurementNames,
-		fqMeasurementsNames:             fqMeasurementsNames,
+		Time:                 time.Now(),
+		TimeSentToAIEngine:   time.Time{},
+		path:                 path,
+		measurementsNames:    measurementNames,
+		fqMeasurementsNames:  fqMeasurementsNames,
 		measurementsNamesMap: measurementsNamesMap,
-		categoriesNames: categoriesNames,
-		fqCategoriesNames: fqCategoriesNames,
-		categoriesNamesMap: categoriesNamesMap,
-		tags:               tags,
-		observations:       observations,
+		categoriesNames:      categoriesNames,
+		fqCategoriesNames:    fqCategoriesNames,
+		categoriesNamesMap:   categoriesNamesMap,
+		tags:                 tags,
+		observations:         observations,
 	}
 }
 
-// Processes into State by field path
+// Processes CSV into State by field path
 // CSV headers are expected to be fully-qualified field names
 func GetStateFromCsv(measurementsNames []string, categoriesMap map[string][]string, data []byte) ([]*State, error) {
 	reader := bytes.NewReader(data)
