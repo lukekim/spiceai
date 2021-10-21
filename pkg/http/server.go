@@ -149,10 +149,10 @@ func apiPostDataspaceHandler(ctx *fasthttp.RequestCtx) {
 	ctx.Response.SetStatusCode(201)
 }
 
-func apiPodsHandler(ctx *fasthttp.RequestCtx) {
+func apiGetPodsHandler(ctx *fasthttp.RequestCtx) {
 	pods := pods.Pods()
 
-	data := make([]*runtime_pb.Pod, 0)
+	data := make([]*runtime_pb.Pod, 0, len(pods))
 
 	for _, f := range pods {
 		if f == nil {
@@ -165,14 +165,16 @@ func apiPodsHandler(ctx *fasthttp.RequestCtx) {
 
 	response, err := json.Marshal(data)
 	if err != nil {
-		ctx.Response.Header.SetContentType("application/json")
+		ctx.Response.SetStatusCode(500)
+		ctx.Response.SetBodyString(err.Error())
 		return
 	}
 
+	ctx.Response.Header.SetContentType("application/json")
 	ctx.Response.SetBody(response)
 }
 
-func apiPodHandler(ctx *fasthttp.RequestCtx) {
+func apiGetPodHandler(ctx *fasthttp.RequestCtx) {
 	podParam := ctx.UserValue("pod").(string)
 	pod := pods.GetPod(podParam)
 
@@ -185,10 +187,12 @@ func apiPodHandler(ctx *fasthttp.RequestCtx) {
 
 	response, err := json.Marshal(data)
 	if err != nil {
-		ctx.Response.Header.SetContentType("application/json")
+		ctx.Response.SetStatusCode(500)
+		ctx.Response.SetBodyString(err.Error())
 		return
 	}
 
+	ctx.Response.Header.SetContentType("application/json")
 	ctx.Response.SetBody(response)
 }
 
@@ -201,8 +205,6 @@ func apiPodTrainHandler(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	// Retrieving body request to overload the pod
-	overloaded_pod := pod
 	var trainRequest runtime_pb.TrainModel
 	err := json.Unmarshal(ctx.Request.Body(), &trainRequest)
 	if err != nil {
@@ -210,11 +212,8 @@ func apiPodTrainHandler(ctx *fasthttp.RequestCtx) {
 		ctx.Response.SetBodyString(err.Error())
 		return
 	}
-	if trainRequest.LearningAlgorithm != "" {
-		overloaded_pod.SetLearningAlgorithm(trainRequest.LearningAlgorithm)
-	}
 
-	err = aiengine.StartTraining(overloaded_pod)
+	err = aiengine.StartTraining(pod, trainRequest.LearningAlgorithm, trainRequest.NumberEpisodes)
 	if err != nil {
 		ctx.Response.SetStatusCode(500)
 		ctx.Response.SetBodyString(err.Error())
@@ -542,8 +541,8 @@ func (server *server) Start() error {
 	api := r.Group("/api/v0.1")
 	{
 		// Pods
-		api.GET("/pods", apiPodsHandler)
-		api.GET("/pods/{pod}", apiPodHandler)
+		api.GET("/pods", apiGetPodsHandler)
+		api.GET("/pods/{pod}", apiGetPodHandler)
 		api.POST("/pods/{pod}/train", apiPodTrainHandler)
 		api.GET("/pods/{pod}/observations", apiGetObservationsHandler)
 		api.POST("/pods/{pod}/observations", apiPostObservationsHandler)

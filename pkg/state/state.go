@@ -24,9 +24,6 @@ type State struct {
 	measurementsNames    []string
 	fqMeasurementsNames  []string
 	measurementsNamesMap map[string]string
-	categoriesNames      []string
-	fqCategoriesNames    []string
-	categoriesNamesMap   map[string]string
 	tags                 []string
 	observations         []observations.Observation
 	observationsMutex    sync.RWMutex
@@ -34,20 +31,16 @@ type State struct {
 
 type StateHandler func(state *State, metadata map[string]string) error
 
-func NewState(path string, measurementNames []string, categoriesNames []string, tags []string, observations []observations.Observation) *State {
-	fqMeasurementsNames, measurementsNamesMap := getFieldNames(path, measurementNames)
-	fqCategoriesNames, categoriesNamesMap := getFieldNames(path, categoriesNames)
+func NewState(path string, measurementsNames []string, tags []string, observations []observations.Observation) *State {
+	fqMeasurementsNames, measurementsNamesMap := getFieldNames(path, measurementsNames)
 
 	return &State{
 		Time:                 time.Now(),
 		TimeSentToAIEngine:   time.Time{},
 		path:                 path,
-		measurementsNames:    measurementNames,
+		measurementsNames:    measurementsNames,
 		fqMeasurementsNames:  fqMeasurementsNames,
 		measurementsNamesMap: measurementsNamesMap,
-		categoriesNames:      categoriesNames,
-		fqCategoriesNames:    fqCategoriesNames,
-		categoriesNamesMap:   categoriesNamesMap,
 		tags:                 tags,
 		observations:         observations,
 	}
@@ -209,18 +202,6 @@ func (s *State) MeasurementsNamesMap() map[string]string {
 	return s.measurementsNamesMap
 }
 
-func (s *State) CategoriesNames() []string {
-	return s.categoriesNames
-}
-
-func (s *State) FqCategoriesNames() []string {
-	return s.fqCategoriesNames
-}
-
-func (s *State) CategoriesNamesMap() map[string]string {
-	return s.categoriesNamesMap
-}
-
 func (s *State) Observations() []observations.Observation {
 	return s.observations
 }
@@ -284,6 +265,7 @@ func getColumnMappings(headers []string) ([]string, []string, error) {
 	return columnToPath, columnToFieldName, nil
 }
 
+// Gets the list of fully-qualified field names, and a map of names to fq names
 func getFieldNames(path string, fieldNames []string) ([]string, map[string]string) {
 	fqNames := make([]string, len(fieldNames))
 	namesMap := make(map[string]string, len(fieldNames))

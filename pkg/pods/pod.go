@@ -138,8 +138,9 @@ func (pod *Pod) CachedCsv() string {
 
 		for _, podFqMeasurementName := range measurementNames {
 			isLocal := false
-			for measurementName, stateFqMeasurementName := range state.MeasurementsNamesMap() {
-				if podFqMeasurementName == stateFqMeasurementName {
+			for _, measurementName := range state.MeasurementsNames() {
+				measurement := state.Path() + "." + measurementName
+				if globalMeasurementName == measurement {
 					validHeaders = append(validHeaders, measurementName)
 					isLocal = true
 					break
@@ -556,8 +557,4 @@ func (pod *Pod) loadParams() error {
 
 func (pod *Pod) LearningAlgorithm() string {
 	return pod.podParams.LearningAlgorithm
-}
-
-func (pod *Pod) SetLearningAlgorithm(algorithm string) {
-	pod.podParams.LearningAlgorithm = algorithm
 }
