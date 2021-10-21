@@ -553,3 +553,11 @@ func (pod *Pod) loadParams() error {
 
 	return nil
 }
+
+func (pod *Pod) LearningAlgorithm() string {
+	return pod.podParams.LearningAlgorithm
+}
+
+func (pod *Pod) SetLearningAlgorithm(algorithm string) {
+	pod.podParams.LearningAlgorithm = algorithm
+}
