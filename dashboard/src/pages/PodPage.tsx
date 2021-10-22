@@ -18,11 +18,6 @@ interface PodProps {
   podName: string;
 }
 
-interface GridProps {
-  columns: GridColumn[];
-  gridDataFunc: ([col, row]: readonly [number, number]) => GridCell;
-}
-
 // TODO: Resize dynamically
 const gridWidth = 900;
 const gridHeight = 600;
@@ -36,101 +31,106 @@ const PodPage: React.FunctionComponent<PodProps> = () => {
   const { data: flights, error: flightsError } = useFlights(podName);
   const { data: observations, error: observationsError } = useObservations(podName);
 
-  const [gridProps, setGridProps] = useState<GridProps>();
+  const [gridColumns, setGridColumns] = useState<GridColumn[]>([]);
 
   useEffect(() => {
-    if (observations && observations.length) {
-      const cols = [];
-      const timeCol = { title: 'time', width: 180 };
-      cols.push(timeCol);
-      const firstObservation = observations[0];
+    if (pod) {
+      const cols: GridColumn[] = [{ title: 'time', width: 180 }];
+      const numMeasurements = pod.measurements ? pod.measurements.length : 0
+      const numCategories = pod.categories ? pod.categories.length : 0
 
-      const measurementsKeys = firstObservation.measurements
-        ? Object.keys(firstObservation.measurements)
-        : [];
-      const categoriesKeys = firstObservation.categories
-        ? Object.keys(firstObservation.categories)
-        : [];
       const colWidth =
-        (gridWidth - timeCol.width - 17) / (measurementsKeys.length + categoriesKeys.length + 1);
+        (gridWidth - cols[0].width - 17) / (numMeasurements + numCategories + 1);
 
-      for (const m of measurementsKeys) {
-        cols.push({ title: m, width: colWidth });
+      if (pod.measurements) {
+        for (const m of pod.measurements) {
+          cols.push({ title: m, width: colWidth });
+        }
       }
 
-      for (const c of categoriesKeys) {
-        cols.push({ title: c, width: colWidth });
+      if (pod.categories) {
+        for (const c of pod.categories) {
+          cols.push({ title: c, width: colWidth });
+        }
       }
 
       cols.push({ title: 'tags', width: colWidth });
 
-      const getGridDataFunc = ([col, row]: readonly [number, number]): GridCell => {
-        if (row >= observations.length) {
-          return {
-            kind: GridCellKind.Number,
-            data: undefined,
-            displayData: '',
-            allowOverlay: false,
-          };
-        }
-        const observation = observations[observations.length - row - 1];
-        if (col === 0) {
-          return {
-            kind: GridCellKind.Number,
-            data: observation.time,
-            displayData: new Date(observation.time * 1000).toLocaleString(),
-            allowOverlay: false,
-          };
-        }
-
-        if (col >= 1 && col <= measurementsKeys.length) {
-          const measurement = observation.measurements[measurementsKeys[col - 1]];
-          return {
-            kind: GridCellKind.Number,
-            data: measurement,
-            displayData: measurement.toString(),
-            allowOverlay: false,
-          };
-        }
-
-        if (
-          col > measurementsKeys.length &&
-          col <= measurementsKeys.length + categoriesKeys.length
-        ) {
-          const category =
-            observation.categories[categoriesKeys[col - measurementsKeys.length - 1]];
-          return {
-            kind: GridCellKind.Text,
-            data: category,
-            displayData: category,
-            allowOverlay: false,
-          };
-        }
-
-        if (col == measurementsKeys.length + categoriesKeys.length + 1) {
-          const tags = observation.tags ? observation.tags.join(' ') : '';
-          return {
-            kind: GridCellKind.Text,
-            data: tags,
-            displayData: tags,
-            allowOverlay: false,
-          };
-        }
-
-        return {
-          kind: GridCellKind.Number,
-          data: row,
-          displayData: row.toString(),
-          allowOverlay: false,
-        };
-      };
-
-      setGridProps({
-        columns: cols,
-        gridDataFunc: getGridDataFunc,
-      });
+      setGridColumns(cols);
     }
-  }, [observations]);
+  }, [pod]);
+
+  const getGridDataFunc = ([col, row]: readonly [number, number]): GridCell => {
+    if (!pod || !observations) {
+      return {
+        kind: GridCellKind.Number,
+        data: row,
+        displayData: row.toString(),
+        allowOverlay: false,
+      };
+    }
+    
+    if (row >= observations.length) {
+      return {
+        kind: GridCellKind.Number,
+        data: undefined,
+        displayData: '',
+        allowOverlay: false,
+      };
+    }
+    const observation = observations[observations.length - row - 1];
+    if (col === 0) {
+      return {
+        kind: GridCellKind.Number,
+        data: observation.time,
+        displayData: new Date(observation.time * 1000).toLocaleString(),
+        allowOverlay: false,
+      };
+    }
+
+    console.log(observation)
+
+    const numMeasurements = pod.measurements ? pod.measurements.length : 0
+    const numCategories = pod.categories ? pod.categories.length : 0
+
+    if (observation.measurements && pod.measurements && col >= 1 && col <= numMeasurements) {
+      const measurement = observation.measurements[col - 1];
+      return {
+        kind: GridCellKind.Number,
+        data: measurement,
+        displayData: measurement ? measurement.toString() : "",
+        allowOverlay: false,
+      };
+    }
+
+    if (observation.categories && col > numMeasurements && col <= numMeasurements + numCategories) {
+      const category =
+        observation.categories[pod.categories[col - numMeasurements - 1]];
+      return {
+        kind: GridCellKind.Text,
+        data: category,
+        displayData: category,
+        allowOverlay: false,
+      };
+    }
+
+    if (col == numMeasurements + numCategories + 1) {
+      const tags = observation.tags ? observation.tags.join(' ') : '';
+      return {
+        kind: GridCellKind.Text,
+        data: tags,
+        displayData: tags,
+        allowOverlay: false,
+      };
+    }
+
+    return {
+      kind: GridCellKind.Number,
+      data: row,
+      displayData: row.toString(),
+      allowOverlay: false,
+    };
+  };
 
   return (
     <div className="flex flex-col flex-grow">
@@ -142,11 +142,11 @@ const PodPage: React.FunctionComponent<PodProps> = () => {
             <span>An error occurred fetching observations: {observationsError}</span>
           )}
           <div className="border-1 border-gray-300">
-            {!observationsError && observations && gridProps && (
+            {!observationsError && observations && gridColumns && (
               <DataEditorContainer width={gridWidth} height={gridHeight}>
                 <DataEditor
-                  getCellContent={gridProps.gridDataFunc}
-                  columns={gridProps.columns}
+                  getCellContent={getGridDataFunc}
+                  columns={gridColumns}
                   rows={observations.length}
                   rowMarkers={false}
                 />
