@@ -70,6 +70,7 @@ func getAddDataRequest(pod *pods.Pod, s *state.State) *aiengine_pb.AddDataReques
 	if len(observations) == 0 {
 		return nil
 	}
+	currentDataspace := pod.GetDataspace(s.Path())
 
 	csvPreview := writeData(&csv, pod.Epoch(), s.MeasurementsNames(), tagPathMap[s.Path()], categoryPathMap[s.Path()], observations, 5)
 
